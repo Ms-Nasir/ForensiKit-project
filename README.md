@@ -188,3 +188,11 @@ This project was developed to demonstrate practical implementation of mobile dev
 ### Disclaimer
 
 ForensiKit is intended for authorized forensic investigations, education, and research. Only analyze devices and evidence that you are legally authorized to access.
+
+--- 
+
+### 👩‍💻 Author
+
+Ms. Nasir
+
+Cybersecurity | SOC Operations | Network Security | Digital Forensics
