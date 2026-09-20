@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - Hash Verify</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>🔒 Hash Verification</h1>
+        <p>Generate a SHA-256 fingerprint for any extracted file.</p>
+
+        <div class="card">
+            <h3>Select a file:</h3>
+
+            <!-- Dropdown will be filled automatically -->
+            <select id="file-select"
+                style="width:100%; padding:10px; margin:8px 0 16px 0;
+                       border:1px solid #ddd; border-radius:6px; font-size:14px">
+                <option value="">-- Loading files... --</option>
+            </select>
+
+            <button class="btn" onclick="generateHash()">
+                🔒 Generate Hash
+            </button>
+        </div>
+
+        <!-- Result box -->
+        <div class="card" id="result-box" style="display:none">
+            <h3>Result:</h3>
+            <p><strong>File:</strong> <span id="result-file"></span></p>
+            <p><strong>SHA-256 Hash:</strong></p>
+            <div id="result-hash"
+                style="background:#f5f5f5; padding:12px; border-radius:6px;
+                       font-family:monospace; font-size:13px;
+                       word-break:break-all; margin-top:6px">
+            </div>
+            <p id="result-msg" style="color:green; margin-top:10px"></p>
+        </div>
+    </div>
+
+    <script>
+        // Load files from output folder when page opens
+        window.onload = function() {
+            fetch('/api/list-files')
+            .then(res => res.json())
+            .then(data => {
+                let select = document.getElementById('file-select');
+                select.innerHTML = '';
+
+                if (data.files.length === 0) {
+                    select.innerHTML = '<option>No files found — extract files first!</option>';
+                    return;
+                }
+
+                data.files.forEach(function(file) {
+                    let option = document.createElement('option');
+                    option.value = file.name;
+                    option.text = file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        function generateHash() {
+            let filename = document.getElementById('file-select').value;
+
+            if (!filename) {
+                alert('Please select a file first!');
+                return;
+            }
+
+            fetch('/api/hash', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: filename })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                document.getElementById('result-box').style.display = 'block';
+                document.getElementById('result-file').innerText = data.filename;
+                document.getElementById('result-hash').innerText = data.hash;
+                document.getElementById('result-msg').innerText = '✅ ' + data.message;
+            });
+        }
+    </script>
+
+
+</body>
+</html>

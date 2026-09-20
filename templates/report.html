@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - Report</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>📋 Generate Report</h1>
+        <p>Fill in the details and generate your forensic report.</p>
+
+        <div class="card">
+            <h3>Case Information</h3>
+
+            <label>Case Name:</label><br>
+            <input type="text" id="case-name" 
+                   placeholder="e.g. Case #2024-001"
+                   style="width:100%; padding:10px; margin:8px 0 16px 0;
+                          border:1px solid #ddd; border-radius:6px; font-size:14px">
+
+            <label>Investigator Name:</label><br>
+            <input type="text" id="investigator" 
+                   placeholder="Your name"
+                   style="width:100%; padding:10px; margin:8px 0 16px 0;
+                          border:1px solid #ddd; border-radius:6px; font-size:14px">
+
+            <button class="btn" onclick="generateReport()">
+                📋 Generate Report
+            </button>
+        </div>
+
+        <div class="card" id="result-box" style="display:none">
+    <h3>Result:</h3>
+    <p id="result-text"></p>
+    <a id="download-btn" href="#" class="btn" style="display:none; margin-top:10px" download>
+        ⬇ Download PDF Report
+    </a>
+</div>
+    </div>
+
+    <script>
+        function generateReport() {
+            let caseName = document.getElementById('case-name').value;
+            let investigator = document.getElementById('investigator').value;
+
+            if (!caseName || !investigator) {
+                alert('Please fill in both fields!');
+                return;
+            }
+
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('result-text').innerText = '⏳ Generating report...';
+
+            fetch('/api/report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    case_name: caseName,
+                    investigator: investigator
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+    document.getElementById('result-text').innerText = '✅ ' + data.message;
+    let btn = document.getElementById('download-btn');
+    btn.href = '/output/' + data.filename;
+    btn.style.display = 'inline-block';
+})
+            .catch(err => {
+                document.getElementById('result-text').innerText = '❌ Error: ' + err;
+            });
+        }
+    </script>
+
+</body>
+</html>

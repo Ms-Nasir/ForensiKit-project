@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - Extract Files</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>📂 Extract Files</h1>
+        <p>Connect your phone and extract files from it.</p>
+
+        <div class="card">
+            <h3>Select what to extract:</h3>
+
+            <label>
+                <input type="radio" name="path" value="/sdcard/" checked>
+                All Files
+            </label><br><br>
+
+            <label>
+                <input type="radio" name="path" value="/sdcard/DCIM/">
+                Photos only
+            </label><br><br>
+
+            <label>
+                <input type="radio" name="path" value="/sdcard/Downloads/">
+                Downloads only
+            </label><br><br>
+
+            <button class="btn" onclick="startExtract()">
+                📂 Start Extraction
+            </button>
+        </div>
+
+        <div class="card" id="result-box" style="display:none">
+            <h3>Result:</h3>
+            <p id="result-text"></p>
+        </div>
+    </div>
+
+    <script>
+        function startExtract() {
+            // Show the result box
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('result-text').innerText = '⏳ Extracting files... please wait.';
+
+            // Get selected path
+            let path = document.querySelector('input[name="path"]:checked').value;
+
+            // Send to Python backend
+            fetch('/api/extract', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: path })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('result-text').innerText = '✅ Done! ' + data.message;
+            })
+            .catch(err => {
+                document.getElementById('result-text').innerText = '❌ Error: ' + err;
+            });
+        }
+    </script>
+
+</body>
+</html>

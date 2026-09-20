@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - File Timeline</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>⏰ File Timeline</h1>
+        <p>See all files sorted by date — what happened and when.</p>
+
+        <div class="card">
+            <h3>How to read this:</h3>
+            <p style="font-size:13px; color:#888">
+                🔵 Each dot is a file event. Newest files appear at the top.
+                This helps investigators understand the sequence of events.
+            </p>
+        </div>
+
+        <!-- Timeline -->
+        <div id="timeline-box" style="margin-top:20px">
+            <p style="color:#888">⏳ Loading timeline...</p>
+        </div>
+
+    </div>
+
+    <script>
+        window.onload = function() {
+            fetch('/api/timeline')
+            .then(res => res.json())
+            .then(data => {
+                let box = document.getElementById('timeline-box');
+
+                if (data.files.length === 0) {
+                    box.innerHTML = `
+                        <div class="card" style="color:#888; text-align:center; padding:30px">
+                            No files found. 
+                            <a href="/upload" style="color:#4a90d9">Upload files</a> 
+                            to see timeline.
+                        </div>`;
+                    return;
+                }
+
+                let html = '<div style="position:relative; padding-left:30px">';
+
+                // Vertical line
+                html += `<div style="position:absolute; left:10px; top:0;
+                                     bottom:0; width:2px;
+                                     background:#e0e0e0"></div>`;
+
+                data.files.forEach(function(file, index) {
+                    // Pick color based on file type
+                    let ext = file.name.split('.').pop().toLowerCase();
+                    let color = '#4a90d9';
+                    let icon = '📄';
+
+                    if (['jpg','jpeg','png','gif'].includes(ext)) {
+                        color = '#22c55e'; icon = '🖼️';
+                    } else if (['db','sqlite'].includes(ext)) {
+                        color = '#f59e0b'; icon = '🗄️';
+                    } else if (['txt','log','csv'].includes(ext)) {
+                        color = '#4a90d9'; icon = '📝';
+                    } else if (['tmp','bak','deleted'].includes(ext)) {
+                        color = '#ef4444'; icon = '⚠️';
+                    } else if (['pdf'].includes(ext)) {
+                        color = '#8b5cf6'; icon = '📋';
+                    }
+
+                    html += `
+                        <div style="position:relative; margin-bottom:20px">
+
+                            <!-- Dot on timeline -->
+                            <div style="position:absolute; left:-24px; top:16px;
+                                        width:14px; height:14px;
+                                        background:${color};
+                                        border-radius:50%;
+                                        border:2px solid white;
+                                        box-shadow:0 0 0 2px ${color}">
+                            </div>
+
+                            <!-- File card -->
+                            <div style="background:white; border:1px solid #eee;
+                                        border-left:4px solid ${color};
+                                        border-radius:8px; padding:14px 16px;
+                                        margin-left:10px">
+
+                                <div style="display:flex;
+                                            justify-content:space-between;
+                                            align-items:flex-start">
+                                    <div>
+                                        <div style="font-weight:bold; font-size:14px">
+                                            ${icon} ${file.name}
+                                        </div>
+                                        <div style="font-size:12px; color:#888; margin-top:4px">
+                                            Size: ${file.size}
+                                        </div>
+                                    </div>
+                                    <div style="text-align:right; font-size:12px; color:#888">
+                                        <div>📅 Modified: ${file.modified}</div>
+                                        <div>🕐 Created: ${file.created}</div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>`;
+                });
+
+                html += '</div>';
+                box.innerHTML = html;
+            });
+        }
+    </script>
+
+</body>
+</html>

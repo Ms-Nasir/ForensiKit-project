@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - Data Recovery</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>🔄 Data Recovery</h1>
+        <p>Find hidden, deleted, or suspicious files in extracted data.</p>
+
+        <div class="card">
+            <h3>How this works:</h3>
+            <p>This scanner checks your output folder for:</p>
+            <p>🔹 Hidden files (starting with a dot)</p>
+            <p>🔹 Temporary files (.tmp)</p>
+            <p>🔹 Backup files (.bak)</p>
+            <p>🔹 Empty / wiped files (0 bytes)</p>
+            <br>
+            <button class="btn" onclick="scanNow()">
+                🔄 Scan Now
+            </button>
+        </div>
+
+        <!-- Results -->
+        <div class="card" id="result-box" style="display:none">
+            <h3>Scan Results: <span id="count-badge"
+                style="background:#4a90d9; color:white; padding:2px 10px;
+                       border-radius:20px; font-size:14px">
+                0 found
+            </span></h3>
+
+            <div id="no-files"
+                style="color:green; margin-top:12px; display:none">
+                ✅ No suspicious files found. Data looks clean!
+            </div>
+
+            <table id="result-table"
+                style="width:100%; border-collapse:collapse;
+                       margin-top:12px; display:none">
+                <thead>
+                    <tr style="background:#f5f5f5; text-align:left">
+                        <th style="padding:10px; border:1px solid #ddd">File Name</th>
+                        <th style="padding:10px; border:1px solid #ddd">Reason Found</th>
+                        <th style="padding:10px; border:1px solid #ddd">Size</th>
+                    </tr>
+                </thead>
+                <tbody id="result-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function scanNow() {
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('result-body').innerHTML = '';
+            document.getElementById('no-files').style.display = 'none';
+            document.getElementById('result-table').style.display = 'none';
+
+            fetch('/api/recover')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('count-badge').innerText =
+                    data.count + ' found';
+
+                if (data.count === 0) {
+                    document.getElementById('no-files').style.display = 'block';
+                    return;
+                }
+
+                document.getElementById('result-table').style.display = 'table';
+
+                data.files.forEach(function(file) {
+                    let row = `
+                        <tr>
+                            <td style="padding:10px; border:1px solid #ddd">
+                                ⚠️ ${file.name}
+                            </td>
+                            <td style="padding:10px; border:1px solid #ddd">
+                                <span style="background:#fff3cd; color:#856404;
+                                      padding:2px 8px; border-radius:4px">
+                                    ${file.reason}
+                                </span>
+                            </td>
+                            <td style="padding:10px; border:1px solid #ddd">
+                                ${file.size}
+                            </td>
+                        </tr>`;
+                    document.getElementById('result-body').innerHTML += row;
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>

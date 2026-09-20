@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - Metadata Reader</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>🧠 Metadata Reader</h1>
+        <p>Read hidden information inside any file — date, location, camera, and more.</p>
+
+        <!-- Select file -->
+        <div class="card">
+            <h3>Select a file:</h3>
+            <select id="file-select"
+                style="width:100%; padding:10px; margin:8px 0 16px 0;
+                       border:1px solid #ddd; border-radius:6px; font-size:14px">
+                <option value="">-- Loading files... --</option>
+            </select>
+            <button class="btn" onclick="readMetadata()">
+                🧠 Read Metadata
+            </button>
+        </div>
+
+        <!-- Results -->
+        <div id="result-box" style="display:none">
+
+            <!-- Basic info -->
+            <div class="card" style="margin-top:16px">
+                <h3>📄 Basic File Info</h3>
+                <table style="width:100%; border-collapse:collapse; margin-top:10px">
+                    <tbody id="basic-body"></tbody>
+                </table>
+            </div>
+
+            <!-- Image info -->
+            <div class="card" id="image-card" style="margin-top:16px; display:none">
+                <h3>🖼️ Image Info</h3>
+                <table style="width:100%; border-collapse:collapse; margin-top:10px">
+                    <tbody id="image-body"></tbody>
+                </table>
+            </div>
+
+            <!-- GPS info -->
+            <div class="card" id="gps-card"
+                style="margin-top:16px; display:none;
+                       border-left:4px solid #22c55e">
+                <h3>📍 GPS Location Found!</h3>
+                <p style="color:#888; font-size:13px; margin-bottom:10px">
+                    This file contains location data — the photo was taken here:
+                </p>
+                <table style="width:100%; border-collapse:collapse">
+                    <tbody id="gps-body"></tbody>
+                </table>
+            </div>
+
+            <!-- EXIF info -->
+            <div class="card" id="exif-card" style="margin-top:16px; display:none">
+                <h3>📷 Camera / EXIF Data</h3>
+                <table style="width:100%; border-collapse:collapse; margin-top:10px">
+                    <tbody id="exif-body"></tbody>
+                </table>
+            </div>
+
+            <!-- No exif note -->
+            <div class="card" id="no-exif-card"
+                style="margin-top:16px; display:none; background:#fffbe6;
+                       border:1px solid #ffe58f">
+                <p>📝 <strong>Note:</strong>
+                    <span id="no-exif-msg"></span>
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Table row helper
+        function makeRow(key, value) {
+            return `<tr>
+                <td style="padding:8px 10px; border:1px solid #eee;
+                           background:#f9f9f9; font-weight:bold;
+                           width:35%; font-size:13px">${key}</td>
+                <td style="padding:8px 10px; border:1px solid #eee;
+                           font-size:13px">${value}</td>
+            </tr>`;
+        }
+
+        // Load files on page open
+        window.onload = function() {
+            fetch('/api/list-files')
+            .then(res => res.json())
+            .then(data => {
+                let select = document.getElementById('file-select');
+                select.innerHTML = '';
+                if (data.files.length === 0) {
+                    select.innerHTML = '<option>No files — upload files first!</option>';
+                    return;
+                }
+                data.files.forEach(function(file) {
+                    let opt = document.createElement('option');
+                    opt.value = file.name;
+                    opt.text = file.name;
+                    select.appendChild(opt);
+                });
+            });
+        }
+
+        function readMetadata() {
+            let filename = document.getElementById('file-select').value;
+            if (!filename) { alert('Please select a file!'); return; }
+
+            // Hide all result cards
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('image-card').style.display = 'none';
+            document.getElementById('gps-card').style.display = 'none';
+            document.getElementById('exif-card').style.display = 'none';
+            document.getElementById('no-exif-card').style.display = 'none';
+            document.getElementById('basic-body').innerHTML = '<tr><td colspan="2" style="padding:10px; color:#888">⏳ Reading metadata...</td></tr>';
+
+            fetch('/api/metadata', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: filename })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) { alert(data.error); return; }
+
+                // Basic info
+                let basicHtml = '';
+                basicHtml += makeRow('File Name', data.filename);
+                basicHtml += makeRow('File Type', data.type);
+                basicHtml += makeRow('File Size', data.size);
+                basicHtml += makeRow('Created', data.created);
+                basicHtml += makeRow('Last Modified', data.modified);
+                document.getElementById('basic-body').innerHTML = basicHtml;
+
+                // Image info
+                if (data.width) {
+                    document.getElementById('image-card').style.display = 'block';
+                    let imgHtml = '';
+                    imgHtml += makeRow('Width', data.width + ' px');
+                    imgHtml += makeRow('Height', data.height + ' px');
+                    imgHtml += makeRow('Format', data.format);
+                    document.getElementById('image-body').innerHTML = imgHtml;
+                }
+
+                // GPS info
+                if (data.gps) {
+                    document.getElementById('gps-card').style.display = 'block';
+                    let gpsHtml = '';
+                    for (let key in data.gps) {
+                        gpsHtml += makeRow(key, data.gps[key]);
+                    }
+                    document.getElementById('gps-body').innerHTML = gpsHtml;
+                }
+
+                // EXIF info
+                if (data.exif && Object.keys(data.exif).length > 0) {
+                    document.getElementById('exif-card').style.display = 'block';
+                    let exifHtml = '';
+                    for (let key in data.exif) {
+                        exifHtml += makeRow(key, data.exif[key]);
+                    }
+                    document.getElementById('exif-body').innerHTML = exifHtml;
+                }
+
+                // No EXIF note
+                if (data.note) {
+                    document.getElementById('no-exif-card').style.display = 'block';
+                    document.getElementById('no-exif-msg').innerText = data.note;
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

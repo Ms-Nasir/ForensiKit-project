@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>📊 Dashboard</h1>
+        <p>Live overview of your forensic investigation.</p>
+
+        <!-- Stat cards -->
+        <div style="display:flex; gap:16px; margin:20px 0; flex-wrap:wrap">
+
+            <div class="stat-card">
+                <div class="stat-number" id="total-files">0</div>
+                <div class="stat-label">Total Files</div>
+            </div>
+
+            <div class="stat-card" style="border-color:#f59e0b">
+                <div class="stat-number" style="color:#f59e0b"
+                     id="total-size">0 KB</div>
+                <div class="stat-label">Total Size</div>
+            </div>
+
+            <div class="stat-card" style="border-color:#22c55e">
+                <div class="stat-number" style="color:#22c55e"
+                     id="recovered-count">0</div>
+                <div class="stat-label">Suspicious Files</div>
+            </div>
+
+        </div>
+
+        <!-- Quick action buttons -->
+        <div style="display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap">
+            <a href="/upload" class="btn btn-primary">📁 Upload Files</a>
+            <a href="/hash" class="btn">🔒 Hash Verify</a>
+            <a href="/recovery" class="btn">🔄 Recovery Scan</a>
+            <a href="/report" class="btn">📋 Generate Report</a>
+        </div>
+
+        <!-- Files table -->
+        <div class="card">
+            <h3>Files in Investigation</h3>
+            <table style="width:100%; border-collapse:collapse; margin-top:12px">
+                <thead>
+                    <tr style="background:#f5f5f5; text-align:left">
+                        <th style="padding:10px; border:1px solid #ddd">#</th>
+                        <th style="padding:10px; border:1px solid #ddd">File Name</th>
+                        <th style="padding:10px; border:1px solid #ddd">Size</th>
+                        <th style="padding:10px; border:1px solid #ddd">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="files-body">
+                    <tr>
+                        <td colspan="4"
+                            style="padding:20px; text-align:center; color:#888">
+                            Loading files...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        // Load everything when page opens
+        window.onload = function() {
+            loadFiles();
+            loadRecovered();
+        }
+
+        function loadFiles() {
+            fetch('/api/list-files')
+            .then(res => res.json())
+            .then(data => {
+                // Update stat cards
+                document.getElementById('total-files').innerText =
+                    data.files.length;
+
+                // Calculate total size
+                let totalBytes = 0;
+                data.files.forEach(f => totalBytes += f.size);
+                document.getElementById('total-size').innerText =
+                    (totalBytes / 1024).toFixed(1) + ' KB';
+
+                // Fill table
+                let tbody = document.getElementById('files-body');
+
+                if (data.files.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4"
+                                style="padding:20px; text-align:center; color:#888">
+                                No files yet. 
+                                <a href="/upload" style="color:#4a90d9">
+                                    Upload files
+                                </a> to get started!
+                            </td>
+                        </tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.files.forEach(function(file, index) {
+                    let sizeKB = (file.size / 1024).toFixed(1);
+                    let status = file.size === 0
+                        ? '<span style="color:orange">⚠️ Empty</span>'
+                        : '<span style="color:green">✅ OK</span>';
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="padding:10px; border:1px solid #ddd; color:#888">
+                                ${index + 1}
+                            </td>
+                            <td style="padding:10px; border:1px solid #ddd">
+                                📄 ${file.name}
+                            </td>
+                            <td style="padding:10px; border:1px solid #ddd; color:#888">
+                                ${sizeKB} KB
+                            </td>
+                            <td style="padding:10px; border:1px solid #ddd">
+                                ${status}
+                            </td>
+                        </tr>`;
+                });
+            });
+        }
+
+        function loadRecovered() {
+            fetch('/api/recover')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('recovered-count').innerText =
+                    data.count;
+            });
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ForensiKit - Upload Files</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>🔍 ForensiKit</h2>
+        <a href="/">Dashboard</a>
+        <a href="/upload">Upload Files</a>
+        <a href="/extract">Extract Files</a>
+        <a href="/metadata">Metadata Reader</a>
+        <a href="/timeline">File Timeline</a>
+        <a href="/hash">Hash Verify</a>
+        <a href="/recovery">Data Recovery</a>
+        <a href="/report">Report</a>
+    </div>
+
+    <div class="main">
+        <h1>📁 Upload Files</h1>
+        <p>Upload files from your computer to investigate them.</p>
+
+        <!-- Upload box -->
+        <div class="card">
+            <h3>Select files to upload:</h3>
+            <p style="color:#888; font-size:13px">
+                Supported: txt, pdf, png, jpg, db, csv, bak, tmp, log
+            </p>
+
+            <!-- Drop zone -->
+            <div id="drop-zone"
+                style="border: 2px dashed #4a90d9;
+                       border-radius: 10px;
+                       padding: 40px;
+                       text-align: center;
+                       margin: 16px 0;
+                       cursor: pointer;
+                       background: #f0f7ff;
+                       transition: background 0.2s">
+                <div style="font-size: 40px">📂</div>
+                <p style="color:#4a90d9; font-weight:bold; margin:8px 0">
+                    Click to select files
+                </p>
+                <p style="color:#888; font-size:13px">
+                    or drag and drop files here
+                </p>
+                <input type="file" id="file-input"
+                       multiple
+                       style="display:none">
+            </div>
+
+            <!-- Selected files preview -->
+            <div id="selected-files" style="display:none; margin-bottom:16px">
+                <h4>Selected files:</h4>
+                <ul id="file-list"
+                    style="list-style:none; padding:0; margin:8px 0">
+                </ul>
+            </div>
+
+            <button class="btn" onclick="uploadFiles()">
+                ⬆ Upload Files
+            </button>
+        </div>
+
+        <!-- Result -->
+        <div class="card" id="result-box" style="display:none">
+            <h3>Upload Result:</h3>
+
+            <div id="uploaded-list"></div>
+            <div id="skipped-list"></div>
+
+            <div style="margin-top:16px">
+                <a href="/hash" class="btn">
+                    🔒 Now Hash these files
+                </a>
+                <a href="/recovery" class="btn"
+                   style="margin-left:10px">
+                    🔄 Run Recovery Scan
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Click drop zone to open file picker
+        document.getElementById('drop-zone').onclick = function() {
+            document.getElementById('file-input').click();
+        }
+
+        // Highlight drop zone on drag
+        document.getElementById('drop-zone').ondragover = function(e) {
+            e.preventDefault();
+            this.style.background = '#dceeff';
+        }
+
+        document.getElementById('drop-zone').ondragleave = function() {
+            this.style.background = '#f0f7ff';
+        }
+
+        // Handle drag and drop
+        document.getElementById('drop-zone').ondrop = function(e) {
+            e.preventDefault();
+            this.style.background = '#f0f7ff';
+            document.getElementById('file-input').files = e.dataTransfer.files;
+            showSelectedFiles(e.dataTransfer.files);
+        }
+
+        // Show selected file names
+        document.getElementById('file-input').onchange = function() {
+            showSelectedFiles(this.files);
+        }
+
+        function showSelectedFiles(files) {
+            let list = document.getElementById('file-list');
+            let box = document.getElementById('selected-files');
+            list.innerHTML = '';
+
+            if (files.length === 0) return;
+
+            box.style.display = 'block';
+
+            for (let i = 0; i < files.length; i++) {
+                let size = (files[i].size / 1024).toFixed(1);
+                list.innerHTML += `
+                    <li style="padding:6px 0; border-bottom:1px solid #eee; font-size:13px">
+                        📄 ${files[i].name}
+                        <span style="color:#888; margin-left:8px">${size} KB</span>
+                    </li>`;
+            }
+        }
+
+        function uploadFiles() {
+            let fileInput = document.getElementById('file-input');
+
+            if (fileInput.files.length === 0) {
+                alert('Please select files first!');
+                return;
+            }
+
+            // Build form data
+            let formData = new FormData();
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('files', fileInput.files[i]);
+            }
+
+            // Show uploading message
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('uploaded-list').innerHTML = '⏳ Uploading...';
+
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Show uploaded files
+                let uploadedHtml = '';
+                if (data.uploaded.length > 0) {
+                    uploadedHtml = '<h4 style="color:green">✅ Uploaded successfully:</h4><ul style="padding-left:20px">';
+                    data.uploaded.forEach(function(f) {
+                        uploadedHtml += `<li style="padding:4px 0">${f}</li>`;
+                    });
+                    uploadedHtml += '</ul>';
+                }
+                document.getElementById('uploaded-list').innerHTML = uploadedHtml;
+
+                // Show skipped files
+                let skippedHtml = '';
+                if (data.skipped.length > 0) {
+                    skippedHtml = '<h4 style="color:orange; margin-top:12px">⚠️ Skipped (unsupported type):</h4><ul style="padding-left:20px">';
+                    data.skipped.forEach(function(f) {
+                        skippedHtml += `<li style="padding:4px 0; color:#888">${f}</li>`;
+                    });
+                    skippedHtml += '</ul>';
+                }
+                document.getElementById('skipped-list').innerHTML = skippedHtml;
+            });
+        }
+    </script>
+
+</body>
+</html>
